@@ -22,7 +22,7 @@ class RegistroEstudianteForm(forms.ModelForm):
         model = RepositorioUser
         fields = ["nombre_completo", "email", "cedula"]
         labels = {"nombre_completo": "Nombre completo", "email": "Correo electrónico", "cedula": "Cédula"}
-        widgets = {"nombre_completo": forms.TextInput(attrs={"autocomplete": "name"}), "email": forms.EmailInput(attrs={"autocomplete": "email"})}
+        widgets = {"nombre_completo": forms.TextInput(attrs={"autocomplete": "name", "pattern": "[A-Za-zÁÉÍÓÚáéíóúÑñÜü\\s'’-]+", "maxlength": 180}), "email": forms.EmailInput(attrs={"autocomplete": "email"}), "cedula": forms.TextInput(attrs={"inputmode": "numeric", "pattern": "[0-9]{6,12}", "maxlength": 12})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,6 +40,12 @@ class RegistroEstudianteForm(forms.ModelForm):
         if RepositorioUser.objects.filter(cedula=cedula).exists():
             raise ValidationError("Ya existe una cuenta con esta cédula.")
         return cedula
+
+    def clean_nombre_completo(self):
+        nombre = self.cleaned_data["nombre_completo"].strip()
+        if not nombre.replace(" ", "").replace("-", "").replace("'", "").isalpha():
+            raise ValidationError("El nombre solo puede contener letras, espacios y guiones.")
+        return nombre
 
     def clean(self):
         cleaned_data = super().clean()
@@ -72,6 +78,7 @@ class CrearBibliotecarioForm(forms.ModelForm):
         model = RepositorioUser
         fields = ["nombre_completo", "email", "cedula"]
         labels = {"nombre_completo": "Nombre completo", "email": "Correo electrónico", "cedula": "Cédula"}
+        widgets = {"nombre_completo": forms.TextInput(attrs={"autocomplete": "name", "pattern": "[A-Za-zÁÉÍÓÚáéíóúÑñÜü\\s'’-]+", "maxlength": 180}), "email": forms.EmailInput(attrs={"autocomplete": "email"}), "cedula": forms.TextInput(attrs={"inputmode": "numeric", "pattern": "[0-9]{6,12}", "maxlength": 12})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,6 +99,12 @@ class CrearBibliotecarioForm(forms.ModelForm):
                 self.add_error("password", error)
         return cleaned_data
 
+    def clean_nombre_completo(self):
+        nombre = self.cleaned_data["nombre_completo"].strip()
+        if not nombre.replace(" ", "").replace("-", "").replace("'", "").isalpha():
+            raise ValidationError("El nombre solo puede contener letras, espacios y guiones.")
+        return nombre
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.is_active, user.is_staff = True, False
@@ -111,6 +124,7 @@ class CrearUsuarioForm(forms.ModelForm):
         model = RepositorioUser
         fields = ["nombre_completo", "email", "cedula", "is_active"]
         labels = {"nombre_completo": "Nombre completo", "email": "Correo electrónico", "cedula": "Cédula", "is_active": "Cuenta activa"}
+        widgets = {"nombre_completo": forms.TextInput(attrs={"pattern": "[A-Za-zÁÉÍÓÚáéíóúÑñÜü\\s'’-]+", "maxlength": 180}), "cedula": forms.TextInput(attrs={"inputmode": "numeric", "pattern": "[0-9]{6,12}", "maxlength": 12})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

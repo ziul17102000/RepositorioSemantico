@@ -22,7 +22,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
-	path("", RedirectView.as_view(pattern_name="repositorio_usuarios:login", permanent=False)),
+    path("", RedirectView.as_view(pattern_name="repositorio_documentos:lista", permanent=False)),
     path("admin/", admin.site.urls),
     path("repositorio/", include("repositorio_usuarios.urls")),
     path("repositorio/", include("repositorio_dashboard.urls")),

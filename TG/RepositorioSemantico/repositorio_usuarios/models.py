@@ -1,15 +1,19 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
 from .managers import RepositorioUserManager
 
+nombre_validator = RegexValidator(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'’-]+$", "Solo se permiten letras, espacios y guiones.")
+cedula_validator = RegexValidator(r"^\d{6,12}$", "La cédula debe contener entre 6 y 12 números.")
+
 
 class RepositorioUser(AbstractBaseUser, PermissionsMixin):
 	email = models.EmailField(unique=True)
-	nombre_completo = models.CharField(max_length=180, blank=True, default="")
-	cedula = models.CharField(max_length=30, unique=True, null=True, blank=True)
+	nombre_completo = models.CharField(max_length=180, blank=True, default="", validators=[nombre_validator])
+	cedula = models.CharField(max_length=30, unique=True, null=True, blank=True, validators=[cedula_validator])
 	is_active = models.BooleanField(default=False)
 	is_staff = models.BooleanField(default=False)
 	fecha_creacion = models.DateTimeField(default=timezone.now, editable=False)

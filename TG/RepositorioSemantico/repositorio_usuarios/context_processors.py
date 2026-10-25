@@ -1,4 +1,4 @@
-from .rbac import GROUP_ADMINS, GROUP_LIBRARIANS, GROUP_STUDENTS, group_names
+from .rbac import GROUP_ADMINS, GROUP_COORDINATORS, GROUP_LIBRARIANS, GROUP_STUDENTS, GROUP_TUTORS, group_names
 
 
 def rbac_context(request):
@@ -8,4 +8,6 @@ def rbac_context(request):
         "es_administrador": request.user.is_superuser or GROUP_ADMINS in groups,
         "es_bibliotecario": request.user.is_superuser or GROUP_LIBRARIANS in groups,
         "es_estudiante": GROUP_STUDENTS in groups,
+        "es_tutor": GROUP_TUTORS in groups,
+        "es_coordinador": GROUP_COORDINATORS in groups,
     }

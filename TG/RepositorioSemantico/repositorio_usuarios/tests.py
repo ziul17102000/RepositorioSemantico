@@ -6,10 +6,25 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import RepositorioUser
+from .forms import RegistroEstudianteForm
 from .rbac import GROUP_ADMINS, GROUP_STUDENTS, ensure_group
 
 
 class RegistroYAccesoTests(TestCase):
+	def test_registro_valida_nombre_y_cedula(self):
+		form = RegistroEstudianteForm(data={
+			"nombre_completo": "Ana123",
+			"email": "valida@example.edu",
+			"cedula": "123",
+			"password": "PiedraLimon2026$Oceano",
+			"confirmacion": "PiedraLimon2026$Oceano",
+			"acepta_terminos": "on",
+		})
+
+		self.assertFalse(form.is_valid())
+		self.assertIn("nombre_completo", form.errors)
+		self.assertIn("cedula", form.errors)
+
 	def test_registro_crea_estudiante_inactivo_y_login_informa_pendiente(self):
 		response = self.client.post(reverse("repositorio_usuarios:registro"), {
 			"nombre_completo": "Ana Torres",
@@ -118,10 +133,9 @@ class AprobacionTests(TestCase):
 		self.assertEqual(response.status_code, 302)
 		self.assertEqual(response.url, reverse("repositorio_dashboard:inicio"))
 
-	def test_raiz_sin_sesion_lleva_al_login(self):
-		response = self.client.get(reverse("repositorio_dashboard:inicio"))
-		login_url = reverse("repositorio_usuarios:login")
-		self.assertRedirects(response, f"{login_url}?next={reverse('repositorio_dashboard:inicio')}")
+	def test_raiz_sin_sesion_lleva_a_la_biblioteca(self):
+		response = self.client.get("/")
+		self.assertRedirects(response, reverse("repositorio_documentos:lista"))
 
 	def test_dashboard_admin_y_admin_django_renderizan(self):
 		self.client.force_login(self.administrador)

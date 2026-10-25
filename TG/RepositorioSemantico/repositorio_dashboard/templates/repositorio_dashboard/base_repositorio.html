@@ -10,10 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   {% block extra_meta %}{% endblock %}
   <style>
-    :root { --green: {{ config_repositorio.color_primario|default:'#16845B' }}; --deep-green: {{ config_repositorio.color_secundario|default:'#123D34' }}; --ink:#19332e; --muted:#6e807b; --paper:#f4f8f6; }
-    body { font-family:'DM Sans',sans-serif; color:var(--ink); background:radial-gradient(ellipse at 85% 0%, #e5f3ec 0, transparent 34rem),var(--paper); min-height:100vh; }
+    :root { --blue: {{ config_repositorio.color_primario|default:'#1769AA' }}; --deep-blue: {{ config_repositorio.color_secundario|default:'#0B2545' }}; --green:var(--blue); --deep-green:var(--deep-blue); --ink:#172b4d; --muted:#64748b; --paper:#f4f7fb; }
+    body { font-family:'DM Sans',sans-serif; color:var(--ink); background:radial-gradient(ellipse at 85% 0%, #e6f0fb 0, transparent 34rem),var(--paper); min-height:100vh; }
     h1,h2,h3,.brand { font-family:'Manrope',sans-serif; letter-spacing:0; }
-    .topbar { background:linear-gradient(115deg,var(--deep-green),var(--green)); color:white; }
+    .topbar { background:linear-gradient(115deg,var(--deep-blue),var(--blue)); color:white; }
     .brand-mark { width:40px;height:40px;display:grid;place-items:center;background:#ffffff20;border-radius:12px;color:white;overflow:hidden; }
     .brand-mark img { width:100%;height:100%;object-fit:cover; }
     .topbar .nav-link,.topbar .navbar-brand { color:#fff; }
@@ -23,7 +23,7 @@
     .surface { background:#fff;border:1px solid #e0ebe5;border-radius:8px;box-shadow:0 14px 40px #1a45350c; }
     .stat { border-left:3px solid var(--green); }
     .stat-icon { width:42px;height:42px;display:grid;place-items:center;background:#e8f5ed;color:var(--green);border-radius:12px; }
-    .btn-primary { --bs-btn-bg:var(--green);--bs-btn-border-color:var(--green);--bs-btn-hover-bg:var(--deep-green);--bs-btn-hover-border-color:var(--deep-green); }
+    .btn-primary { --bs-btn-bg:var(--blue);--bs-btn-border-color:var(--blue);--bs-btn-hover-bg:var(--deep-blue);--bs-btn-hover-border-color:var(--deep-blue); }
     .text-muted { color:var(--muted)!important; }
     @keyframes enter { from { opacity:0;transform:translateY(8px) } to { opacity:1;transform:translateY(0) } }
     @media (max-width:575.98px) { .page-wrap { padding-left:1rem;padding-right:1rem; } }
@@ -44,8 +44,8 @@
       {% if request.user.is_authenticated %}
         {% if es_administrador or es_bibliotecario %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:pendientes' %}">Pendientes</a></li>{% endif %}
         {% if es_administrador %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:usuarios' %}">Usuarios</a></li><li class="nav-item"><a class="nav-link" href="{% url 'repositorio_config:editar' %}">Configuración</a></li>{% endif %}
-        {% if perms.repositorio_documentos.puede_avalar_documento %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:avales' %}">Avales</a></li>{% endif %}
-        {% if perms.repositorio_documentos.puede_validar_academicamente %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:validacion' %}">Validación</a></li>{% endif %}
+        {% if es_tutor %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:avales' %}"><i class="fa-solid fa-stamp me-1"></i>Avales</a></li>{% endif %}
+        {% if es_coordinador %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:validacion' %}"><i class="fa-solid fa-clipboard-check me-1"></i>Validación</a></li>{% endif %}
         <li class="nav-item dropdown ms-lg-2"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-circle-user me-1"></i>{{ request.user.get_short_name }}</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="{% url 'repositorio_usuarios:perfil' %}"><i class="fa-solid fa-user me-2"></i>Mi perfil</a></li><li><hr class="dropdown-divider"></li><li><form method="post" action="{% url 'repositorio_usuarios:logout' %}">{% csrf_token %}<button class="dropdown-item" type="submit"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Cerrar sesión</button></form></li></ul></li>
       {% else %}
         <li class="nav-item ms-lg-2"><a class="btn btn-sm btn-light text-success" href="{% url 'repositorio_usuarios:login' %}"><i class="fa-solid fa-right-to-bracket me-1"></i>Iniciar sesión</a></li>

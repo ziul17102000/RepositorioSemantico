@@ -13,7 +13,7 @@ class ConfiguracionForm(forms.ModelForm):
             "color_primario": "Color primario", "color_secundario": "Color secundario", "correo_contacto": "Correo de contacto",
             "texto_terminos": "Términos y condiciones", "permitir_registro_estudiantes": "Permitir registro de estudiantes", "licencias_habilitadas": "Licencias disponibles para estudiantes",
         }
-        widgets = {"texto_terminos": forms.Textarea(attrs={"rows": 4})}
+        widgets = {"texto_terminos": forms.Textarea(attrs={"rows": 4}), "color_primario": forms.TextInput(attrs={"type": "color", "class": "form-control form-control-color color-input"}), "color_secundario": forms.TextInput(attrs={"type": "color", "class": "form-control form-control-color color-input"})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
