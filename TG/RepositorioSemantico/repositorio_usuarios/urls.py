@@ -6,6 +6,7 @@ app_name = "repositorio_usuarios"
 urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("perfil/", views.perfil, name="perfil"),
     path("registro/", views.registro_estudiante, name="registro"),
     path("pendientes/", views.lista_estudiantes_pendientes, name="pendientes"),
     path("aprobar/<int:pk>/", views.aprobar_estudiante, name="aprobar"),

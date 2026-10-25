@@ -40,6 +40,11 @@ def logout_view(request):
 	return redirect("repositorio_usuarios:login")
 
 
+@login_required
+def perfil(request):
+	return render(request, "repositorio_usuarios/perfil.html")
+
+
 def registro_estudiante(request):
 	configuracion = Configuracion.get_solo()
 	if not configuracion.permitir_registro_estudiantes:
