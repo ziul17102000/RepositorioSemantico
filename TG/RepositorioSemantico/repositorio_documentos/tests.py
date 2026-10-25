@@ -2,10 +2,13 @@ import hashlib
 from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
 from repositorio_usuarios.models import RepositorioUser
+from repositorio_usuarios.rbac import GROUP_LIBRARIANS, GROUP_STUDENTS, ensure_group
+from .forms import DocumentoEstudianteForm
 from .models import Documento
 
 
@@ -13,12 +16,16 @@ class FlujoDocumentoTests(TestCase):
 	def setUp(self):
 		self.estudiante = RepositorioUser.objects.create_user(
 			email="estudiante@uni.edu", nombre_completo="Estudiante Prueba", cedula="DOC-001",
-			password="ClaveSegura2026$Documento", is_active=True, rol="estudiante",
+			password="ClaveSegura2026$Documento", is_active=True,
 		)
 		self.bibliotecario = RepositorioUser.objects.create_user(
 			email="biblioteca@uni.edu", nombre_completo="Bibliotecario Prueba", cedula="DOC-002",
-			password="ClaveSegura2026$Documento", is_active=True, is_staff=True, rol="bibliotecario",
+			password="ClaveSegura2026$Documento", is_active=True, is_staff=True,
 		)
+		self.estudiante.groups.add(ensure_group(GROUP_STUDENTS))
+		self.bibliotecario.groups.add(ensure_group(GROUP_LIBRARIANS))
+		self.estudiante.groups.first().permissions.add(Permission.objects.get(codename="puede_crear_documento_propio"))
+		self.bibliotecario.groups.first().permissions.add(Permission.objects.get(codename="puede_publicar_documento"))
 
 	def _archivo(self):
 		contenido = b"%PDF-1.4 documento academico de prueba"
@@ -33,7 +40,7 @@ class FlujoDocumentoTests(TestCase):
 			"tipo_trabajo": "tesis",
 			"idioma": "es",
 			"palabras_clave": "repositorios, preservación, tesis",
-			"licencia": "cc_by",
+			"licencia": "cc_by_nc_nd",
 			"estado_acceso": "abierto",
 			"acepta_terminos": "on",
 			"autorizo_preservacion": "on",
@@ -41,6 +48,9 @@ class FlujoDocumentoTests(TestCase):
 
 	def test_autodeposito_calcula_hash_y_queda_pendiente(self):
 		self.client.force_login(self.estudiante)
+		form_page = self.client.get(reverse("repositorio_documentos:subir_estudiante"))
+		self.assertEqual(form_page.status_code, 200)
+		self.assertContains(form_page, "cc_by_nc_nd.png")
 		archivo, contenido = self._archivo()
 		response = self.client.post(reverse("repositorio_documentos:subir_estudiante"), self._datos() | {"archivo": archivo})
 
@@ -84,7 +94,7 @@ class FlujoDocumentoTests(TestCase):
 			"tipo_trabajo": "articulo",
 			"idioma": "es",
 			"palabras_clave": "biblioteca, investigación",
-			"licencia": "cc_by",
+			"licencia": "cc_by_nc_nd",
 			"estado_acceso": "abierto",
 			"autor": str(self.estudiante.pk),
 			"archivo": archivo,
@@ -104,3 +114,18 @@ class FlujoDocumentoTests(TestCase):
 
 		response = self.client.get(documento.get_absolute_url())
 		self.assertEqual(response.status_code, 404)
+
+	def test_formulario_rechaza_archivos_que_no_son_pdf(self):
+		archivo = SimpleUploadedFile("trabajo.docx", b"docx", content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+		form = DocumentoEstudianteForm(data=self._datos(), files={"archivo": archivo})
+
+		self.assertFalse(form.is_valid())
+		self.assertIn("archivo", form.errors)
+
+	def test_embargo_exige_fecha_de_liberacion(self):
+		archivo, _ = self._archivo()
+		data = self._datos() | {"estado_acceso": "embargado"}
+		form = DocumentoEstudianteForm(data=data, files={"archivo": archivo})
+
+		self.assertFalse(form.is_valid())
+		self.assertIn("fecha_liberacion", form.errors)

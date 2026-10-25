@@ -20,10 +20,13 @@ class RepositorioUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, nombre_completo="", cedula="", password=None, **extra_fields):
-        extra_fields.setdefault("rol", "administrador")
         extra_fields.setdefault("is_active", True)
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         if extra_fields.get("is_staff") is not True or extra_fields.get("is_superuser") is not True:
             raise ValueError("Un superusuario debe tener is_staff=True e is_superuser=True.")
-        return self.create_user(email, nombre_completo, cedula, password, **extra_fields)
+        user = self.create_user(email, nombre_completo, cedula, password, **extra_fields)
+        from .rbac import GROUP_ADMINS, ensure_group
+
+        user.groups.add(ensure_group(GROUP_ADMINS))
+        return user

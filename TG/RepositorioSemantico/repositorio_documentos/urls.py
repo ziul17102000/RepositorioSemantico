@@ -14,4 +14,8 @@ urlpatterns = [
     path("documentos/<slug:slug>/eliminar/", views.eliminar_documento, name="eliminar"),
     path("documentos/revision/<int:pk>/aprobar/", views.aprobar_documento, name="aprobar"),
     path("documentos/revision/<int:pk>/rechazar/", views.rechazar_documento, name="rechazar"),
+    path("documentos/avales/", views.lista_avales, name="avales"),
+    path("documentos/<int:pk>/avalar/", views.avalar_documento, name="avalar"),
+    path("documentos/validacion-academica/", views.lista_validacion_academica, name="validacion"),
+    path("documentos/<int:pk>/validar-academicamente/", views.validar_academicamente, name="validar_academicamente"),
 ]

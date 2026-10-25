@@ -42,11 +42,15 @@
       <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
         <li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:lista' %}"><i class="fa-solid fa-file-lines me-1"></i>Documentos</a></li>
       {% if request.user.is_authenticated %}
-        {% if request.user.rol == 'administrador' or request.user.rol == 'bibliotecario' %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:pendientes' %}">Pendientes</a></li>{% endif %}
-        {% if request.user.rol == 'administrador' %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:usuarios' %}">Usuarios</a></li><li class="nav-item"><a class="nav-link" href="{% url 'repositorio_config:editar' %}">Configuración</a></li>{% endif %}
+        {% if es_administrador or es_bibliotecario %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:pendientes' %}">Pendientes</a></li>{% endif %}
+        {% if es_administrador %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_usuarios:usuarios' %}">Usuarios</a></li><li class="nav-item"><a class="nav-link" href="{% url 'repositorio_config:editar' %}">Configuración</a></li>{% endif %}
+        {% if perms.repositorio_documentos.puede_avalar_documento %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:avales' %}">Avales</a></li>{% endif %}
+        {% if perms.repositorio_documentos.puede_validar_academicamente %}<li class="nav-item"><a class="nav-link" href="{% url 'repositorio_documentos:validacion' %}">Validación</a></li>{% endif %}
         <li class="nav-item ms-lg-2"><form method="post" action="{% url 'repositorio_usuarios:logout' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-light" type="submit"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i>Salir</button></form></li>
-      </ul>
+      {% else %}
+        <li class="nav-item ms-lg-2"><a class="btn btn-sm btn-light text-success" href="{% url 'repositorio_usuarios:login' %}"><i class="fa-solid fa-right-to-bracket me-1"></i>Iniciar sesión</a></li>
       {% endif %}
+      </ul>
     </div>
   </div>
 </nav>

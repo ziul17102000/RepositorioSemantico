@@ -27,6 +27,13 @@ class Documento(models.Model):
 		CC_BY_ND = "cc_by_nd", "CC BY-ND 4.0"
 		CC_BY_NC_ND = "cc_by_nc_nd", "CC BY-NC-ND 4.0"
 
+	class Idiomas(models.TextChoices):
+		ES = "es", "Español"
+		EN = "en", "Inglés"
+		PT = "pt", "Portugués"
+		FR = "fr", "Francés"
+		OTRO = "otro", "Otro idioma"
+
 	class MetodoIngreso(models.TextChoices):
 		AUTODEPOSITO = "autodeposito", "Autodepósito"
 		CARGA_INSTITUCIONAL = "carga_institucional", "Carga institucional"
@@ -41,16 +48,23 @@ class Documento(models.Model):
 		APROBADO = "aprobado", "Aprobado"
 		RECHAZADO = "rechazado", "Rechazado"
 
+	class EstadoProceso(models.TextChoices):
+		PENDIENTE = "pendiente", "Pendiente"
+		APROBADO = "aprobado", "Aprobado"
+		RECHAZADO = "rechazado", "Rechazado"
+
 	titulo = models.CharField(max_length=250)
 	autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="documentos")
+	tutor_asignado = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="documentos_tutorados")
 	tutor = models.CharField(max_length=180, blank=True)
 	resumen = models.TextField()
 	fecha_defensa = models.DateField(null=True, blank=True)
 	tipo_trabajo = models.CharField(max_length=30, choices=TipoTrabajo.choices)
-	idioma = models.CharField(max_length=10, default="es")
+	idioma = models.CharField(max_length=10, choices=Idiomas.choices, default=Idiomas.ES)
 	palabras_clave = models.CharField(max_length=500, help_text="Separa las palabras clave con comas.")
 	url_permanente = models.SlugField(max_length=280, unique=True, blank=True)
-	archivo = models.FileField(upload_to="documentos/%Y/%m/", validators=[FileExtensionValidator(allowed_extensions=["pdf", "docx", "jpg", "jpeg", "png", "webp"])])
+	archivo = models.FileField(upload_to="documentos/%Y/%m/", validators=[FileExtensionValidator(allowed_extensions=["pdf"])])
+	portada = models.ImageField(upload_to="portadas/%Y/%m/", blank=True, null=True)
 	checksum_sha256 = models.CharField(max_length=64, blank=True)
 	licencia = models.CharField(max_length=20, choices=Licencias.choices, default=Licencias.CC_BY)
 	fecha_aceptacion_licencia = models.DateTimeField(null=True, blank=True)
@@ -59,8 +73,14 @@ class Documento(models.Model):
 	acepto_terminos = models.BooleanField(default=False)
 	autorizo_preservacion = models.BooleanField(default=False)
 	estado_acceso = models.CharField(max_length=20, choices=EstadoAcceso.choices, default=EstadoAcceso.ABIERTO)
-	fecha_liberacion = models.DateTimeField(null=True, blank=True)
+	fecha_liberacion = models.DateField(null=True, blank=True)
 	estado_revision = models.CharField(max_length=20, choices=EstadoRevision.choices, default=EstadoRevision.PENDIENTE)
+	estado_aval = models.CharField(max_length=20, choices=EstadoProceso.choices, default=EstadoProceso.PENDIENTE)
+	avalado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="documentos_avalados")
+	fecha_aval = models.DateTimeField(null=True, blank=True)
+	estado_validacion_academica = models.CharField(max_length=20, choices=EstadoProceso.choices, default=EstadoProceso.PENDIENTE)
+	validado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="documentos_validados")
+	fecha_validacion_academica = models.DateTimeField(null=True, blank=True)
 	fecha_subida = models.DateTimeField(default=timezone.now, editable=False)
 	fecha_actualizacion = models.DateTimeField(auto_now=True)
 
@@ -68,6 +88,13 @@ class Documento(models.Model):
 		ordering = ["-fecha_subida"]
 		verbose_name = "documento"
 		verbose_name_plural = "documentos"
+		permissions = (
+			("puede_avalar_documento", "Puede avalar documentos asignados"),
+			("puede_validar_academicamente", "Puede validar académicamente documentos"),
+			("puede_publicar_documento", "Puede aprobar metadatos y publicar documentos"),
+			("puede_ver_documentos_aprobados", "Puede ver documentos aprobados"),
+			("puede_crear_documento_propio", "Puede crear documentos propios"),
+		)
 
 	def __str__(self):
 		return self.titulo
@@ -113,7 +140,7 @@ class Documento(models.Model):
 		if self.estado_revision != self.EstadoRevision.APROBADO:
 			return False
 		if self.estado_acceso == self.EstadoAcceso.EMBARGADO:
-			return bool(self.fecha_liberacion and timezone.now() >= self.fecha_liberacion)
+			return bool(self.fecha_liberacion and timezone.localdate() >= self.fecha_liberacion)
 		return self.estado_acceso == self.EstadoAcceso.ABIERTO
 
 	@property

@@ -12,4 +12,8 @@ urlpatterns = [
     path("rechazar/<int:pk>/", views.rechazar_estudiante, name="rechazar"),
     path("usuarios/", views.lista_usuarios, name="usuarios"),
     path("crear-bibliotecario/", views.crear_bibliotecario, name="crear_bibliotecario"),
+    path("gestion/", views.gestion_usuarios, name="gestion_usuarios"),
+    path("gestion/crear/", views.crear_usuario, name="crear_usuario"),
+    path("gestion/<int:pk>/grupos/", views.cambiar_grupos_usuario, name="cambiar_grupos"),
+    path("gestion/grupo/<int:pk>/", views.detalle_grupo, name="detalle_grupo"),
 ]

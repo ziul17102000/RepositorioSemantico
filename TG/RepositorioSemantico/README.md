@@ -51,3 +51,38 @@ La versión instalada para esta fase es PDF.js 4.10.38. En desarrollo Django sir
 5. Para reparar documentos antiguos sin hash ejecuta `python manage.py recalcular_hashes`. Añade `--todos` para recalcular también los hashes existentes.
 
 SQLite está configurado para desarrollo. En producción configura `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0`, `DJANGO_ALLOWED_HOSTS` y la conexión a PostgreSQL antes de publicar.
+
+## Fase 3: RBAC institucional
+
+La autorización ya no depende de un campo `rol`. Los grupos nativos de Django son la fuente de verdad:
+
+- `Estudiantes`: crean documentos propios y consultan documentos aprobados.
+- `Tutores`: pueden avalar documentos asignados.
+- `Coordinadores`: pueden validar académicamente documentos.
+- `Bibliotecarios`: revisan y publican documentos.
+- `Administradores`: gestionan usuarios, grupos y configuración funcional.
+
+Ejecuta después de migrar:
+
+```bash
+python manage.py crear_grupos_iniciales
+```
+
+El **superusuario** es una cuenta técnica: puede modificar los permisos de los grupos desde `/admin/auth/group/`. El **Administrador** es una cuenta funcional: puede crear usuarios, asignar grupos y configurar licencias, pero no puede modificar los permisos técnicos de un grupo. Un bibliotecario publica documentos, pero no administra usuarios ni permisos.
+
+La migración `repositorio_usuarios.0003` traslada automáticamente los usuarios antiguos que tenían rol a los grupos equivalentes antes de eliminar esa columna.
+
+## Flujo institucional completo
+
+1. Un visitante entra a `/repositorio/documentos/` sin iniciar sesión y consulta documentos aprobados.
+2. Si intenta subir un documento, recibe el mensaje `Debes iniciar sesión para realizar esta acción` y es enviado al login.
+3. El estudiante se registra y un bibliotecario lo aprueba desde **Pendientes**.
+4. El estudiante entra a **Enviar trabajo**, selecciona licencia, disponibilidad y envía el PDF.
+5. El tutor puede avalar el documento y el coordinador puede validarlo académicamente cuando se habiliten sus vistas específicas.
+6. El bibliotecario revisa y publica el documento; este aparece en la estantería pública.
+
+## Seguridad y auditoría
+
+Las vistas protegidas validan grupos y permisos personalizados con decoradores RBAC, usan CSRF, validación server-side y bloqueo visual de doble envío. Los archivos se limitan a PDF y 50 MB, y cada documento conserva un SHA-256. Las acciones sensibles se registran en `Auditoria` con usuario, fecha, IP y detalle.
+
+Las licencias disponibles se administran desde Configuración. Si se desactivan todas, el sistema ofrece automáticamente CC BY-NC-ND para que ningún autodepósito quede sin licencia.

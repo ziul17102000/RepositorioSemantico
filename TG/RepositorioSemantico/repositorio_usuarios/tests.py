@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import RepositorioUser
+from .rbac import GROUP_ADMINS, GROUP_STUDENTS, ensure_group
 
 
 class RegistroYAccesoTests(TestCase):
@@ -21,7 +22,7 @@ class RegistroYAccesoTests(TestCase):
 
 		estudiante = RepositorioUser.objects.get(email="ana@example.edu")
 		self.assertFalse(estudiante.is_active)
-		self.assertEqual(estudiante.rol, RepositorioUser.Roles.ESTUDIANTE)
+		self.assertTrue(estudiante.groups.filter(name=GROUP_STUDENTS).exists())
 		self.assertContains(response, "Tu cuenta está pendiente de aprobación.")
 
 		response = self.client.post(reverse("repositorio_usuarios:login"), {
@@ -58,6 +59,7 @@ class AprobacionTests(TestCase):
 			cedula="000000002",
 			password="PiedraLimon2026$Oceano",
 		)
+		self.estudiante.groups.add(ensure_group(GROUP_STUDENTS))
 
 	def test_administrador_aprueba_y_queda_registrado(self):
 		self.client.force_login(self.administrador)
@@ -86,7 +88,7 @@ class AprobacionTests(TestCase):
 		self.assertTrue(admin_user.is_active)
 		self.assertTrue(admin_user.is_staff)
 		self.assertTrue(admin_user.is_superuser)
-		self.assertEqual(admin_user.rol, RepositorioUser.Roles.ADMINISTRADOR)
+		self.assertTrue(admin_user.groups.filter(name=GROUP_ADMINS).exists())
 		self.assertIn("creado correctamente", output.getvalue())
 
 	@patch.dict("os.environ", {"DJANGO_SUPERUSER_PASSWORD": "FuerteClave2026$Rio"})
@@ -101,7 +103,7 @@ class AprobacionTests(TestCase):
 		admin_user = RepositorioUser.objects.get(email="estandar-admin@example.edu")
 		self.assertIsNone(admin_user.cedula)
 		self.assertEqual(admin_user.nombre_completo, "")
-		self.assertEqual(admin_user.rol, RepositorioUser.Roles.ADMINISTRADOR)
+		self.assertTrue(admin_user.groups.filter(name=GROUP_ADMINS).exists())
 		self.assertTrue(admin_user.is_active)
 		self.assertTrue(admin_user.is_staff)
 		self.assertTrue(admin_user.is_superuser)

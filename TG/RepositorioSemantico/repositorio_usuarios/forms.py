@@ -1,9 +1,11 @@
 from django import forms
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from crispy_forms.helper import FormHelper
 
 from .models import RepositorioUser
+from .rbac import GROUP_LIBRARIANS, GROUP_STUDENTS, ensure_group
 
 
 class LoginForm(forms.Form):
@@ -54,11 +56,11 @@ class RegistroEstudianteForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.rol = RepositorioUser.Roles.ESTUDIANTE
         user.is_active = False
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
+            user.groups.add(ensure_group(GROUP_STUDENTS))
         return user
 
 
@@ -92,8 +94,72 @@ class CrearBibliotecarioForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.rol, user.is_active, user.is_staff = RepositorioUser.Roles.BIBLIOTECARIO, True, False
+        user.is_active, user.is_staff = True, False
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
+            user.groups.add(ensure_group(GROUP_LIBRARIANS))
         return user
+
+
+class CrearUsuarioForm(forms.ModelForm):
+    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
+    confirmacion = forms.CharField(label="Confirmar contraseña", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
+    grupos = forms.ModelMultipleChoiceField(queryset=Group.objects.none(), required=False, label="Grupos")
+
+    class Meta:
+        model = RepositorioUser
+        fields = ["nombre_completo", "email", "cedula", "is_active"]
+        labels = {"nombre_completo": "Nombre completo", "email": "Correo electrónico", "cedula": "Cédula", "is_active": "Cuenta activa"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["grupos"].queryset = Group.objects.all().order_by("name")
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("password") != cleaned_data.get("confirmacion"):
+            self.add_error("confirmacion", "Las contraseñas no coinciden.")
+        if cleaned_data.get("password"):
+            try:
+                validate_password(cleaned_data["password"])
+            except ValidationError as error:
+                self.add_error("password", error)
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password"])
+        if commit:
+            user.save()
+            user.groups.set(self.cleaned_data["grupos"])
+        return user
+
+
+class CambiarGruposForm(forms.Form):
+    grupos = forms.ModelMultipleChoiceField(queryset=Group.objects.none(), required=False, widget=forms.CheckboxSelectMultiple, label="Grupos asignados")
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["grupos"].queryset = Group.objects.all().order_by("name")
+        if user is not None and not self.is_bound:
+            self.initial["grupos"] = user.groups.values_list("pk", flat=True)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+
+
+class GrupoPermisosForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ["name", "permissions"]
+        labels = {"name": "Nombre del grupo", "permissions": "Permisos técnicos"}
+        widgets = {"permissions": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["permissions"].queryset = self.fields["permissions"].queryset.select_related("content_type").order_by("content_type__app_label", "codename")
+        self.helper = FormHelper()
+        self.helper.form_tag = False
